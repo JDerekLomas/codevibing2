@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>codevibing session recorder</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: -apple-system, sans-serif; color: white; }
+  #controls { margin-bottom: 20px; display: flex; gap: 12px; align-items: center; }
+  #controls button {
+    padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  #recordBtn { background: #8b5cf6; color: white; }
+  #recordBtn:hover { background: #7c3aed; }
+  #recordBtn.recording { background: #ef4444; }
+  #status { font-size: 13px; color: #6a6a80; }
+  canvas { border-radius: 12px; box-shadow: 0 0 60px rgba(139, 92, 246, 0.1); }
+</style>
+</head>
+<body>
+
+<div id="controls">
+  <button id="recordBtn" onclick="startRecording()">Record & Play</button>
+  <span id="status">Ready — will record the session replay as video</span>
+</div>
+<canvas id="canvas" width="1280" height="720"></canvas>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const W = 1280, H = 720;
+
+// The actual session — this conversation, condensed
+const sessionEvents = [
+  // Opening
+  { t: 0, type: 'scene', title: 'codevibing', subtitle: 'a session with derek' },
+
+  // Discovery
+  { t: 3000, type: 'prompt', user: 'derek', text: 'I was using this service that recorded my screens...' },
+  { t: 5000, type: 'prompt', user: 'derek', text: 'can you find the recordings?' },
+  { t: 6500, type: 'ai', text: 'Searching the machine...' },
+  { t: 8000, type: 'result', text: 'Found: Rewind.app — 25 GB of recordings' },
+  { t: 9500, type: 'result', text: '3,370 video chunks · 1,472 audio snippets' },
+  { t: 11000, type: 'result', text: 'Feb 2025 — Oct 2025' },
+
+  // The idea
+  { t: 13500, type: 'scene', title: 'the idea drops', subtitle: '' },
+  { t: 15000, type: 'prompt', user: 'derek', text: 'I want to create a social network' },
+  { t: 17000, type: 'prompt', user: 'derek', text: 'where people are code vibing, making things with AI' },
+
+  // The vision
+  { t: 19500, type: 'ai', text: "It's not GitHub. It's not Product Hunt." },
+  { t: 21500, type: 'ai', text: "It's the messy, electric middle part —" },
+  { t: 23500, type: 'ai', text: "you're in a flow state with Claude," },
+  { t: 25000, type: 'ai', text: "things are clicking, you're building something" },
+  { t: 26500, type: 'ai', text: "in an hour that would have taken a week." },
+  { t: 28500, type: 'ai', text: 'That feeling is the product.' },
+
+  // Go
+  { t: 31000, type: 'scene', title: '', subtitle: '' },
+  { t: 31500, type: 'prompt', user: 'derek', text: 'go' },
+
+  // Building
+  { t: 33000, type: 'scene', title: 'building', subtitle: '' },
+  { t: 34000, type: 'code', text: 'npx create-next-app codevibing --typescript --tailwind' },
+  { t: 36000, type: 'code', text: '+ Created src/app/page.tsx' },
+  { t: 37000, type: 'code', text: '+ Created src/app/api/waitlist/route.ts' },
+  { t: 38000, type: 'code', text: '+ Hero section with gradient wordmark' },
+  { t: 39500, type: 'code', text: '+ Waitlist form → Supabase' },
+  { t: 41000, type: 'code', text: '+ Session replay prototype' },
+  { t: 42500, type: 'code', text: '+ Mock feed with vibe cards' },
+
+  // Meta moment
+  { t: 44500, type: 'scene', title: '', subtitle: '' },
+  { t: 45500, type: 'prompt', user: 'derek', text: 'build a screen recorder like rewind' },
+  { t: 47500, type: 'prompt', user: 'derek', text: "can you make a video of this chat?" },
+  { t: 49500, type: 'ai', text: "You're watching it right now." },
+
+  // End
+  { t: 52000, type: 'scene', title: 'codevibing.com', subtitle: 'watch people build with AI' },
+  { t: 56000, type: 'end' },
+];
+
+// Colors
+const COLORS = {
+  bg: '#0a0a0f',
+  surface: '#12121a',
+  border: '#1e1e2e',
+  text: '#e0e0e8',
+  dim: '#4a4a60',
+  accent: '#8b5cf6',
+  green: '#34d399',
+  blue: '#60a5fa',
+  orange: '#fb923c',
+  pink: '#f472b6',
+};
+
+// State
+let startTime = null;
+let animFrame = null;
+let visibleEvents = [];
+let mediaRecorder = null;
+let chunks = [];
+
+function drawRoundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function drawFrame(elapsed) {
+  // Background
+  ctx.fillStyle = COLORS.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Ambient glow
+  const grd = ctx.createRadialGradient(W/2, 0, 0, W/2, 0, 500);
+  grd.addColorStop(0, 'rgba(139, 92, 246, 0.06)');
+  grd.addColorStop(1, 'transparent');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, W, H);
+
+  // Determine visible events
+  visibleEvents = sessionEvents.filter(e => e.t <= elapsed && e.type !== 'end');
+
+  // Find current scene
+  let currentScene = null;
+  for (let i = visibleEvents.length - 1; i >= 0; i--) {
+    if (visibleEvents[i].type === 'scene') {
+      currentScene = visibleEvents[i];
+      break;
+    }
+  }
+
+  // Draw scene title if it's a standalone scene (title card)
+  if (currentScene && currentScene.title && isRecentScene(currentScene, elapsed)) {
+    drawSceneTitle(currentScene, elapsed);
+    return;
+  }
+
+  // Draw terminal window
+  const termX = 80, termY = 40, termW = W - 160, termH = H - 80;
+  drawRoundRect(termX, termY, termW, termH, 12);
+  ctx.fillStyle = COLORS.surface;
+  ctx.fill();
+  ctx.strokeStyle = COLORS.border;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Title bar
+  ctx.fillStyle = COLORS.border;
+  ctx.fillRect(termX, termY, termW, 40);
+  // Round top corners
+  drawRoundRect(termX, termY, termW, 40, 12);
+  ctx.fillStyle = '#161620';
+  ctx.fill();
+
+  // Dots
+  const dotY = termY + 20;
+  [[termX + 20, '#ef4444'], [termX + 38, '#eab308'], [termX + 56, '#22c55e']].forEach(([dx, color]) => {
+    ctx.beginPath();
+    ctx.arc(dx, dotY, 5, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.7;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  });
+
+  // Title
+  ctx.font = '12px "SF Mono", "JetBrains Mono", monospace';
+  ctx.fillStyle = COLORS.dim;
+  ctx.fillText('codevibing session', termX + 80, dotY + 4);
+
+  // Time indicator
+  const secs = Math.floor(elapsed / 1000);
+  const mins = Math.floor(secs / 60);
+  const timeStr = `${mins}:${String(secs % 60).padStart(2, '0')}`;
+  ctx.fillStyle = COLORS.dim;
+  ctx.textAlign = 'right';
+  ctx.fillText(timeStr, termX + termW - 20, dotY + 4);
+  ctx.textAlign = 'left';
+
+  // Progress bar
+  const maxT = sessionEvents[sessionEvents.length - 1].t;
+  const progW = termW - 40;
+  const progX = termX + 20;
+  const progY = termY + termH - 16;
+  ctx.fillStyle = COLORS.border;
+  drawRoundRect(progX, progY, progW, 3, 2);
+  ctx.fill();
+  const fillW = (elapsed / maxT) * progW;
+  const progGrd = ctx.createLinearGradient(progX, 0, progX + progW, 0);
+  progGrd.addColorStop(0, COLORS.accent);
+  progGrd.addColorStop(1, COLORS.pink);
+  ctx.fillStyle = progGrd;
+  drawRoundRect(progX, progY, Math.max(fillW, 4), 3, 2);
+  ctx.fill();
+
+  // Draw conversation lines
+  const contentEvents = visibleEvents.filter(e => e.type !== 'scene');
+  const lineHeight = 36;
+  const contentY = termY + 60;
+  const contentX = termX + 30;
+  const maxLines = Math.floor((termH - 100) / lineHeight);
+
+  // Only show last N lines that fit
+  const displayEvents = contentEvents.slice(-maxLines);
+
+  displayEvents.forEach((event, i) => {
+    const y = contentY + i * lineHeight;
+    const age = elapsed - event.t;
+    const fadeIn = Math.min(age / 300, 1);
+    ctx.globalAlpha = fadeIn;
+
+    if (event.type === 'prompt') {
+      // User prompt
+      ctx.font = 'bold 15px "SF Mono", "JetBrains Mono", monospace';
+      ctx.fillStyle = COLORS.green;
+      const prefix = `${event.user} > `;
+      ctx.fillText(prefix, contentX, y);
+      const prefixW = ctx.measureText(prefix).width;
+      ctx.font = '15px "SF Mono", "JetBrains Mono", monospace';
+      ctx.fillStyle = COLORS.text;
+      // Typewriter effect
+      const charCount = Math.min(Math.floor(age / 30), event.text.length);
+      ctx.fillText(event.text.substring(0, charCount), contentX + prefixW, y);
+      // Cursor
+      if (charCount < event.text.length) {
+        const textW = ctx.measureText(event.text.substring(0, charCount)).width;
+        if (Math.floor(elapsed / 500) % 2 === 0) {
+          ctx.fillStyle = COLORS.accent;
+          ctx.fillRect(contentX + prefixW + textW + 2, y - 12, 9, 16);
+        }
+      }
+    } else if (event.type === 'ai') {
+      ctx.font = '15px "SF Mono", "JetBrains Mono", monospace';
+      ctx.fillStyle = COLORS.blue;
+      const charCount = Math.min(Math.floor(age / 20), event.text.length);
+      ctx.fillText(event.text.substring(0, charCount), contentX + 8, y);
+    } else if (event.type === 'result') {
+      ctx.font = '14px "SF Mono", "JetBrains Mono", monospace';
+      ctx.fillStyle = COLORS.orange;
+      ctx.fillText('  ' + event.text, contentX, y);
+    } else if (event.type === 'code') {
+      ctx.font = '14px "SF Mono", "JetBrains Mono", monospace';
+      ctx.fillStyle = COLORS.dim;
+      const charCount = Math.min(Math.floor(age / 15), event.text.length);
+      ctx.fillText('  ' + event.text.substring(0, charCount), contentX, y);
+    }
+
+    ctx.globalAlpha = 1;
+  });
+
+  // Watermark
+  ctx.font = 'bold 13px -apple-system, sans-serif';
+  ctx.fillStyle = COLORS.dim;
+  ctx.globalAlpha = 0.3;
+  ctx.textAlign = 'right';
+  ctx.fillText('codevibing', W - 30, H - 16);
+  ctx.textAlign = 'left';
+  ctx.globalAlpha = 1;
+}
+
+function isRecentScene(scene, elapsed) {
+  // Check if any non-scene event has appeared after this scene
+  const laterContentEvents = sessionEvents.filter(e => e.t > scene.t && e.t <= elapsed && e.type !== 'scene');
+  return laterContentEvents.length === 0;
+}
+
+function drawSceneTitle(scene, elapsed) {
+  const age = elapsed - scene.t;
+  const fadeIn = Math.min(age / 800, 1);
+  ctx.globalAlpha = fadeIn;
+
+  if (scene.title) {
+    ctx.font = 'bold 64px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+
+    // Gradient text effect (simulated)
+    const grd = ctx.createLinearGradient(W/2 - 200, 0, W/2 + 200, 0);
+    grd.addColorStop(0, COLORS.accent);
+    grd.addColorStop(1, COLORS.pink);
+    ctx.fillStyle = grd;
+    ctx.fillText(scene.title, W / 2, H / 2 - 10);
+  }
+
+  if (scene.subtitle) {
+    ctx.font = '20px -apple-system, sans-serif';
+    ctx.fillStyle = COLORS.dim;
+    ctx.textAlign = 'center';
+    ctx.fillText(scene.subtitle, W / 2, H / 2 + 40);
+  }
+
+  ctx.textAlign = 'left';
+  ctx.globalAlpha = 1;
+}
+
+function animate(timestamp) {
+  if (!startTime) startTime = timestamp;
+  const elapsed = timestamp - startTime;
+
+  drawFrame(elapsed);
+
+  const maxT = sessionEvents[sessionEvents.length - 1].t;
+  if (elapsed < maxT + 2000) {
+    animFrame = requestAnimationFrame(animate);
+  } else {
+    // Done
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      mediaRecorder.stop();
+    }
+    document.getElementById('status').textContent = 'Done! Video will download automatically.';
+    document.getElementById('recordBtn').textContent = 'Play Again';
+    document.getElementById('recordBtn').className = '';
+  }
+}
+
+function startRecording() {
+  startTime = null;
+  if (animFrame) cancelAnimationFrame(animFrame);
+
+  // Set up MediaRecorder to capture the canvas
+  const stream = canvas.captureStream(30); // 30 fps
+  chunks = [];
+  mediaRecorder = new MediaRecorder(stream, {
+    mimeType: 'video/webm;codecs=vp9',
+    videoBitsPerSecond: 5000000
+  });
+
+  mediaRecorder.ondataavailable = (e) => {
+    if (e.data.size > 0) chunks.push(e.data);
+  };
+
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(chunks, { type: 'video/webm' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'codevibing-session.webm';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  mediaRecorder.start();
+  document.getElementById('recordBtn').textContent = 'Recording...';
+  document.getElementById('recordBtn').className = 'recording';
+  document.getElementById('status').textContent = 'Recording session replay...';
+
+  animFrame = requestAnimationFrame(animate);
+}
+
+// Draw initial frame
+drawFrame(0);
+</script>
+
+</body>
+</html>

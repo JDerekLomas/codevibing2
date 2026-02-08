@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>codevibing</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@300;400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --border: #1e1e2e;
+    --text: #e0e0e8;
+    --text-dim: #6a6a80;
+    --accent: #8b5cf6;
+    --accent-glow: rgba(139, 92, 246, 0.15);
+    --green: #34d399;
+    --blue: #60a5fa;
+    --orange: #fb923c;
+    --pink: #f472b6;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ---- HEADER ---- */
+  .header {
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 20px;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+
+  /* ---- FEED ---- */
+  .feed {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 24px 16px;
+  }
+
+  /* ---- VIBE CARD ---- */
+  .vibe-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 24px;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+  .vibe-card:hover {
+    border-color: rgba(139, 92, 246, 0.3);
+  }
+
+  .vibe-header {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--pink));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .vibe-meta {
+    flex: 1;
+  }
+  .vibe-author {
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .vibe-time {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .vibe-tool {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 99px;
+    background: var(--accent-glow);
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* ---- THE SESSION REPLAY ---- */
+  .session-replay {
+    padding: 0 20px 16px;
+  }
+  .session-window {
+    background: #09090f;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .session-titlebar {
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .session-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+  }
+  .session-dot.red { background: #ef4444; }
+  .session-dot.yellow { background: #eab308; }
+  .session-dot.green { background: #22c55e; }
+  .session-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-left: 8px;
+  }
+
+  .session-content {
+    padding: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    min-height: 200px;
+    max-height: 360px;
+    overflow-y: auto;
+  }
+  .session-content::-webkit-scrollbar { width: 4px; }
+  .session-content::-webkit-scrollbar-track { background: transparent; }
+  .session-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .line { margin-bottom: 4px; opacity: 0; animation: lineIn 0.3s ease forwards; }
+  .line.prompt { color: var(--green); }
+  .line.prompt::before { content: '> '; color: var(--text-dim); }
+  .line.ai { color: var(--blue); opacity: 0.85; }
+  .line.code { color: var(--orange); padding-left: 16px; }
+  .line.comment { color: var(--text-dim); font-style: italic; }
+  .line.blank { height: 12px; }
+
+  .cursor-blink {
+    display: inline-block;
+    width: 8px;
+    height: 16px;
+    background: var(--accent);
+    animation: blink 1s step-end infinite;
+    vertical-align: middle;
+    margin-left: 2px;
+  }
+
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
+  @keyframes lineIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---- PROGRESS BAR ---- */
+  .session-progress {
+    padding: 0 16px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .progress-bar {
+    flex: 1;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--pink));
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.3s;
+  }
+  .progress-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 70px;
+    text-align: right;
+  }
+
+  /* ---- CAPTION ---- */
+  .vibe-caption {
+    padding: 4px 20px 16px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ---- STATS BAR ---- */
+  .vibe-stats {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 24px;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .stat:hover { color: var(--text); }
+  .stat svg { width: 16px; height: 16px; }
+
+  /* ---- PULSE INDICATOR ---- */
+  .pulse {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--green);
+    font-weight: 500;
+  }
+  .pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse-anim 2s ease-in-out infinite;
+  }
+  @keyframes pulse-anim {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.4); }
+    50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(52, 211, 153, 0); }
+  }
+
+  /* ---- AMBIENT GLOW ---- */
+  .ambient {
+    position: fixed;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 400px;
+    background: radial-gradient(ellipse, rgba(139, 92, 246, 0.08), transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .feed { position: relative; z-index: 1; }
+
+  /* ---- OUTPUT PREVIEW ---- */
+  .output-preview {
+    margin: 0 20px 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .output-label {
+    padding: 8px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .output-body {
+    padding: 20px;
+    background: #09090f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 120px;
+  }
+  .output-body .mock-btn {
+    padding: 10px 24px;
+    background: linear-gradient(135deg, var(--accent), var(--pink));
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+</style>
+</head>
+<body>
+
+<div class="ambient"></div>
+
+<header class="header">
+  <div class="logo">code<span>vibing</span></div>
+  <div class="pulse"><div class="pulse-dot"></div> 12 vibing now</div>
+</header>
+
+<div class="feed">
+
+  <!-- VIBE CARD 1: Session Replay -->
+  <div class="vibe-card" id="card1">
+    <div class="vibe-header">
+      <div class="avatar">D</div>
+      <div class="vibe-meta">
+        <div class="vibe-author">derek</div>
+        <div class="vibe-time">2 hours ago · 23 min session</div>
+      </div>
+      <div class="vibe-tool">Claude Code</div>
+    </div>
+
+    <div class="session-replay">
+      <div class="session-window">
+        <div class="session-titlebar">
+          <div class="session-dot red"></div>
+          <div class="session-dot yellow"></div>
+          <div class="session-dot green"></div>
+          <div class="session-title">~/codevibing</div>
+        </div>
+        <div class="session-content" id="replay1"></div>
+        <div class="session-progress">
+          <div class="progress-bar"><div class="progress-fill" id="progress1"></div></div>
+          <div class="progress-time" id="time1">0:00 / 1:42</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="output-preview">
+      <div class="output-label">
+        <span>what came out</span>
+        <span style="color: var(--green);">live</span>
+      </div>
+      <div class="output-body">
+        <button class="mock-btn">Join Waitlist</button>
+      </div>
+    </div>
+
+    <div class="vibe-caption">
+      built the landing page in one session. the moment it clicked was when I stopped describing UI and just told claude the *feeling* I wanted.
+    </div>
+
+    <div class="vibe-stats">
+      <div class="stat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        47
+      </div>
+      <div class="stat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        12
+      </div>
+      <div class="stat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        share
+      </div>
+      <div class="stat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIBE CARD 2: Quick text post -->
+  <div class="vibe-card">
+    <div class="vibe-header">
+      <div class="avatar" style="background: linear-gradient(135deg, var(--green), var(--blue));">M</div>
+      <div class="vibe-meta">
+        <div class="vibe-author">maya</div>
+        <div class="vibe-time">4 hours ago</div>
+      </div>
+      <div class="vibe-tool">Cursor</div>
+    </div>
+
+    <div class="vibe-caption" style="padding-top: 0;">
+      just realized you can paste a screenshot of a design into claude and say "make this but better" and it actually does it. three iterations and I had something I'd normally spend a week on. the loop is: screenshot → prompt → screenshot → prompt. that's it. that's the workflow.
+    </div>
+
+    <div class="vibe-stats">
+      <div class="stat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        83
+      </div>
+      <div class="stat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        24
+      </div>
+      <div class="stat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        share
+      </div>
+      <div class="stat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Session replay data — this is "the vibe"
+const session = [
+  { type: 'prompt', text: 'I want to create a social network for people building with AI', delay: 800 },
+  { type: 'blank', delay: 400 },
+  { type: 'ai', text: 'Cool idea. What\'s the core content unit?', delay: 600 },
+  { type: 'ai', text: 'Screen recordings? Project showcases? Live sessions?', delay: 500 },
+  { type: 'blank', delay: 600 },
+  { type: 'prompt', text: 'all of it. the vibe is twitch for building with AI', delay: 900 },
+  { type: 'prompt', text: 'the process IS the content', delay: 700 },
+  { type: 'blank', delay: 500 },
+  { type: 'ai', text: 'Got it. Not GitHub, not Product Hunt.', delay: 500 },
+  { type: 'ai', text: 'The messy electric middle part.', delay: 600 },
+  { type: 'ai', text: 'Let me build the landing page.', delay: 500 },
+  { type: 'blank', delay: 400 },
+  { type: 'comment', text: '// creating next.js app...', delay: 800 },
+  { type: 'comment', text: '// writing hero section...', delay: 600 },
+  { type: 'blank', delay: 300 },
+  { type: 'code', text: '<h1>code<span>vibing</span></h1>', delay: 500 },
+  { type: 'code', text: '<p>watch people build with AI.</p>', delay: 400 },
+  { type: 'code', text: '<p>then build something yourself.</p>', delay: 400 },
+  { type: 'blank', delay: 500 },
+  { type: 'prompt', text: 'that\'s it. that\'s the tagline.', delay: 700 },
+  { type: 'blank', delay: 300 },
+  { type: 'comment', text: '// deploying to vercel...', delay: 1000 },
+  { type: 'ai', text: '✓ deployed to codevibing.com', delay: 800 },
+];
+
+const container = document.getElementById('replay1');
+const progressFill = document.getElementById('progress1');
+const timeDisplay = document.getElementById('time1');
+const totalDuration = session.reduce((sum, s) => sum + s.delay, 0);
+
+let currentLine = 0;
+let elapsed = 0;
+
+function addLine() {
+  if (currentLine >= session.length) return;
+
+  const item = session[currentLine];
+  const div = document.createElement('div');
+  div.className = 'line ' + item.type;
+
+  if (item.type === 'blank') {
+    div.innerHTML = '&nbsp;';
+  } else {
+    div.textContent = item.text || '';
+  }
+
+  // Remove previous cursor
+  const prevCursor = container.querySelector('.cursor-blink');
+  if (prevCursor) prevCursor.remove();
+
+  container.appendChild(div);
+
+  // Add cursor to non-blank lines
+  if (item.type !== 'blank' && item.type !== 'comment') {
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor-blink';
+    div.appendChild(cursor);
+  }
+
+  // Scroll to bottom
+  container.scrollTop = container.scrollHeight;
+
+  // Update progress
+  elapsed += item.delay;
+  const pct = (elapsed / totalDuration) * 100;
+  progressFill.style.width = pct + '%';
+
+  const secs = Math.floor(elapsed / 1000);
+  const totalSecs = Math.floor(totalDuration / 1000);
+  timeDisplay.textContent = `${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')} / ${Math.floor(totalSecs/60)}:${String(totalSecs%60).padStart(2,'0')}`;
+
+  currentLine++;
+
+  if (currentLine < session.length) {
+    setTimeout(addLine, session[currentLine].delay);
+  } else {
+    // Remove final cursor after a beat
+    setTimeout(() => {
+      const c = container.querySelector('.cursor-blink');
+      if (c) c.remove();
+    }, 2000);
+  }
+}
+
+// Start replay after a short delay
+setTimeout(addLine, 1000);
+</script>
+
+</body>
+</html>

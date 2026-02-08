@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>codevibing — fashion archaeology session</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: -apple-system, sans-serif; color: white; }
+  #controls { margin-bottom: 20px; display: flex; gap: 12px; align-items: center; }
+  button {
+    padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  #recordBtn { background: #8b5cf6; color: white; }
+  #recordBtn:hover { background: #7c3aed; }
+  #recordBtn.recording { background: #ef4444; }
+  #status { font-size: 13px; color: #6a6a80; }
+  canvas { border-radius: 12px; }
+</style>
+</head>
+<body>
+
+<div id="controls">
+  <button id="recordBtn" onclick="startRecording()">Record & Play</button>
+  <span id="status">Fashion Archaeology — ready</span>
+</div>
+<canvas id="canvas" width="1280" height="720"></canvas>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const W = 1280, H = 720;
+
+// -- Colors --
+const C = {
+  bg: '#08080c',
+  surface: '#101018',
+  border: '#1c1c2c',
+  text: '#f0ece4',       // warm white — high contrast
+  dim: '#7a7068',
+  prompt: '#6ee7b7',     // bright green
+  ai: '#93c5fd',         // bright blue
+  code: '#fbbf24',       // warm gold
+  accent: '#c4956a',     // archaeological gold
+  violet: '#a78bfa',
+  rust: '#c67b5c',
+  lapis: '#4a7bbd',
+  gold: '#C4A35A',
+};
+
+// -- Preload images --
+const images = {};
+const imageSources = {
+  kimono: 'public/morniplus/1-kimono.png',
+  lotus: 'public/morniplus/2-lotus.png',
+  serpent: 'public/morniplus/3-serpent.png',
+  scarab: 'public/morniplus/4-scarab.png',
+  phoenix: 'public/morniplus/5-phoenix.png',
+  dragon: 'public/morniplus/6-dragon.png',
+  mesopotamian: 'public/morniplus/col-mesopotamian.png',
+  egyptian: 'public/morniplus/col-egyptian.png',
+  celtic: 'public/morniplus/col-celtic.png',
+  persian: 'public/morniplus/col-persian.png',
+  silkroad: 'public/morniplus/col-silkroad.png',
+  japanese: 'public/morniplus/col-japanese.png',
+};
+
+let imagesLoaded = 0;
+const totalImages = Object.keys(imageSources).length;
+
+Object.entries(imageSources).forEach(([key, src]) => {
+  const img = new Image();
+  img.onload = () => { imagesLoaded++; };
+  img.onerror = () => { imagesLoaded++; };
+  img.src = src;
+  images[key] = img;
+});
+
+// -- Session events -- all prompts are real, from Dec 9 2025 session
+const events = [
+  // Title — image background with text overlay
+  { t: 0, type: 'title-card', bgImage: 'mesopotamian', title: 'Garden of Eden', subtitle: 'Fashion Archaeology', meta: 'built with Claude Code · Dec 9, 2025' },
+
+  // Real prompt #2 — crawl morni
+  { t: 5000, type: 'terminal-start' },
+  { t: 5500, type: 'prompt', text: "crawl mymorni.com to copy the code and retrieve the styles" },
+  { t: 9000, type: 'prompt', text: "save it in organized folders with markdown to describe the components" },
+
+  // Real prompt #3
+  { t: 12500, type: 'prompt', text: "generate images and videos with mulerouter" },
+  { t: 15000, type: 'prompt', text: "use reactbits and untitledUI for components" },
+
+  // Real prompt #4 — the remix
+  { t: 18000, type: 'prompt', text: "remix the functions to support colorcodedcrime" },
+  { t: 21000, type: 'code', text: "ColorCodedQASM — Quantum Artisanal Style Manifesto" },
+
+  // Real prompt #5
+  { t: 23500, type: 'prompt', text: "make a github and deploy on vercel" },
+  { t: 26000, type: 'ai', text: "Deployed to morniplus.vercel.app" },
+
+  // Real prompt #6 — THE PIVOT. This is the big one.
+  { t: 28500, type: 'prompt', text: "Focus it on fashion archaeology" },
+  { t: 31500, type: 'prompt', text: "finding ancient symbols and turning into embroidery" },
+  { t: 34500, type: 'prompt', text: "for jackets, dresses, etc. Let's call it Garden of Eden." },
+  { t: 37500, type: 'prompt', text: "Use mulerouter to generate the images of the clothes" },
+
+  // First image reveal — kimono
+  { t: 40500, type: 'image-reveal', key: 'kimono', label: 'Tree of Life Kimono · $1,200' },
+
+  // Real prompt #7
+  { t: 46500, type: 'terminal-resume' },
+  { t: 47000, type: 'prompt', text: "don't you need to look at the existing images on morni" },
+  { t: 50000, type: 'prompt', text: "to describe them as prompts for midjourney?" },
+
+  // Real prompt #10
+  { t: 53000, type: 'prompt', text: "make all the necessary images for the site" },
+  { t: 55500, type: 'prompt', text: "based on the descriptions already there, so it is aligned" },
+
+  // Lotus reveal
+  { t: 58000, type: 'image-reveal', key: 'lotus', label: 'Lotus Emergence Dress · $980' },
+
+  // Real prompt #12
+  { t: 64000, type: 'terminal-resume' },
+  { t: 64500, type: 'prompt', text: "I want to see a version of the site now" },
+  { t: 67000, type: 'prompt', text: "can you deploy what you have?" },
+
+  // Collection grid
+  { t: 69500, type: 'image-grid', keys: ['mesopotamian', 'egyptian', 'celtic', 'persian'] },
+
+  // Real prompt #13
+  { t: 78000, type: 'terminal-resume' },
+  { t: 78500, type: 'prompt', text: "make a hero video using wan then gif too" },
+
+  // Real prompt #14
+  { t: 81500, type: 'prompt', text: "fill in all the 404s and get rid of all the emoji" },
+  { t: 84500, type: 'prompt', text: "instead have image panels... more civilizations" },
+
+  // Real prompt #16
+  { t: 87500, type: 'prompt', text: "add arabian and persian and pakistani and harappan and indian" },
+
+  // Final product gallery
+  { t: 90000, type: 'image-grid', keys: ['serpent', 'scarab', 'phoenix', 'dragon'] },
+
+  // End card — image background
+  { t: 98500, type: 'title-card', bgImage: 'kimono', title: 'Garden of Eden', subtitle: 'morniplus.vercel.app', meta: 'built with Claude Code' },
+
+  { t: 104000, type: 'end' },
+];
+
+// -- State --
+let startTime = null;
+let animFrame = null;
+let mediaRecorder = null;
+let chunks = [];
+let zoom = 1;
+let zoomTarget = 1;
+let panY = 0;
+let panYTarget = 0;
+
+function lerp(a, b, t) { return a + (b - a) * Math.min(Math.max(t, 0), 1); }
+function easeOut(t) { return 1 - Math.pow(1 - Math.min(t, 1), 3); }
+function easeInOut(t) { t = Math.min(Math.max(t, 0), 1); return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2; }
+
+function drawRoundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function drawImageCover(img, x, y, w, h) {
+  if (!img || !img.complete || !img.naturalWidth) return;
+  const imgRatio = img.naturalWidth / img.naturalHeight;
+  const boxRatio = w / h;
+  let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
+  if (imgRatio > boxRatio) {
+    sw = img.naturalHeight * boxRatio;
+    sx = (img.naturalWidth - sw) / 2;
+  } else {
+    sh = img.naturalWidth / boxRatio;
+    sy = (img.naturalHeight - sh) / 2;
+  }
+  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+}
+
+function getActiveMode(elapsed) {
+  const visible = events.filter(e => e.t <= elapsed);
+  for (let i = visible.length - 1; i >= 0; i--) {
+    if (visible[i].type === 'title-card') return 'title-card';
+    if (visible[i].type === 'scene') return 'scene';
+    if (visible[i].type === 'image-reveal') return 'image-reveal';
+    if (visible[i].type === 'image-grid') return 'image-grid';
+    if (visible[i].type === 'terminal-resume' || visible[i].type === 'terminal-start') return 'terminal';
+    if (['prompt', 'ai', 'code'].includes(visible[i].type)) return 'terminal';
+  }
+  return 'title-card';
+}
+
+function getCurrentTitleCard(elapsed) {
+  const visible = events.filter(e => e.t <= elapsed && e.type === 'title-card');
+  return visible.length > 0 ? visible[visible.length - 1] : null;
+}
+
+function drawTitleCard(card, elapsed) {
+  const age = elapsed - card.t;
+  const img = images[card.bgImage];
+
+  // Draw background image — full bleed, darkened
+  if (img && img.complete && img.naturalWidth) {
+    const imgFade = easeOut(Math.min(age / 1200, 1));
+    ctx.globalAlpha = imgFade;
+    drawImageCover(img, 0, 0, W, H);
+
+    // Dark overlay gradient — heavier at bottom for text readability
+    const overlay = ctx.createLinearGradient(0, 0, 0, H);
+    overlay.addColorStop(0, 'rgba(8, 8, 12, 0.45)');
+    overlay.addColorStop(0.4, 'rgba(8, 8, 12, 0.35)');
+    overlay.addColorStop(0.7, 'rgba(8, 8, 12, 0.65)');
+    overlay.addColorStop(1, 'rgba(8, 8, 12, 0.85)');
+    ctx.fillStyle = overlay;
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = 1;
+  }
+
+  // Title text — bottom left, large and readable
+  const textFade = easeOut(Math.min((age - 500) / 800, 1));
+  ctx.globalAlpha = Math.max(textFade, 0);
+
+  const tx = 80;
+  const ty = H - 120;
+
+  // Title
+  ctx.font = '700 72px -apple-system, sans-serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'left';
+  ctx.shadowColor = 'rgba(0,0,0,0.6)';
+  ctx.shadowBlur = 20;
+  ctx.fillText(card.title, tx, ty);
+
+  // Subtitle
+  ctx.font = '300 28px -apple-system, sans-serif';
+  ctx.fillStyle = C.gold;
+  ctx.shadowBlur = 10;
+  ctx.fillText(card.subtitle, tx, ty + 40);
+
+  // Meta
+  if (card.meta) {
+    ctx.font = '400 14px -apple-system, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.shadowBlur = 5;
+    ctx.fillText(card.meta, tx, ty + 70);
+  }
+
+  ctx.shadowBlur = 0;
+  ctx.globalAlpha = 1;
+}
+
+function drawTerminal(elapsed) {
+  // Smooth zoom
+  zoom = lerp(zoom, zoomTarget, 0.06);
+  panY = lerp(panY, panYTarget, 0.06);
+
+  ctx.save();
+  ctx.translate(W / 2, H / 2);
+  ctx.scale(zoom, zoom);
+  ctx.translate(-W / 2, -H / 2 + panY);
+
+  const termX = 60, termY = 30, termW = W - 120, termH = H - 60;
+
+  // Terminal bg
+  drawRoundRect(termX, termY, termW, termH, 14);
+  ctx.fillStyle = C.surface;
+  ctx.fill();
+  ctx.strokeStyle = C.border;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Title bar
+  drawRoundRect(termX, termY, termW, 44, 14);
+  ctx.fillStyle = '#141420';
+  ctx.fill();
+
+  // Bottom corners overlap fix
+  ctx.fillStyle = C.surface;
+  ctx.fillRect(termX + 1, termY + 30, termW - 2, 14);
+
+  // Traffic lights
+  const dotY = termY + 22;
+  [[termX + 22, '#ff5f57'], [termX + 42, '#ffbd2e'], [termX + 62, '#28c840']].forEach(([dx, color]) => {
+    ctx.beginPath();
+    ctx.arc(dx, dotY, 6, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.85;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  });
+
+  ctx.font = '500 13px "SF Mono", "JetBrains Mono", monospace';
+  ctx.fillStyle = C.dim;
+  ctx.fillText('~/morniplus · claude', termX + 86, dotY + 4);
+
+  // Time
+  const secs = Math.floor(elapsed / 1000);
+  ctx.textAlign = 'right';
+  ctx.fillStyle = C.dim;
+  ctx.font = '12px "SF Mono", monospace';
+  ctx.fillText(`${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')}`, termX + termW - 18, dotY + 4);
+  ctx.textAlign = 'left';
+
+  // Content
+  const contentEvents = events.filter(e =>
+    e.t <= elapsed && ['prompt', 'ai', 'code'].includes(e.type)
+  );
+
+  const lineH = 48;
+  const startY = termY + 78;
+  const startX = termX + 32;
+  const maxLines = Math.floor((termH - 90) / lineH);
+  const display = contentEvents.slice(-maxLines);
+  const maxTextW = termW - 100; // max pixel width before truncating
+
+  display.forEach((event, i) => {
+    const y = startY + i * lineH;
+    const age = elapsed - event.t;
+    const fade = easeOut(Math.min(age / 350, 1));
+    ctx.globalAlpha = fade;
+
+    const fontSize = 20;
+
+    if (event.type === 'prompt') {
+      ctx.font = `bold ${fontSize}px "SF Mono", monospace`;
+      ctx.fillStyle = C.prompt;
+      ctx.fillText('> ', startX, y);
+      const prefW = ctx.measureText('> ').width;
+      ctx.font = `${fontSize}px "SF Mono", monospace`;
+      ctx.fillStyle = C.text;
+      const chars = Math.min(Math.floor(age / 28), event.text.length);
+      const displayText = event.text.substring(0, chars);
+      ctx.fillText(displayText, startX + prefW, y);
+      // Cursor
+      if (chars < event.text.length && Math.floor(elapsed / 530) % 2 === 0) {
+        const tw = ctx.measureText(displayText).width;
+        ctx.fillStyle = C.violet;
+        ctx.fillRect(startX + prefW + tw + 2, y - 15, 11, 22);
+      }
+    } else if (event.type === 'ai') {
+      ctx.font = `${fontSize}px "SF Mono", monospace`;
+      ctx.fillStyle = C.ai;
+      const chars = Math.min(Math.floor(age / 22), event.text.length);
+      ctx.fillText(event.text.substring(0, chars), startX + 12, y);
+    } else if (event.type === 'code') {
+      ctx.font = `${fontSize - 1}px "SF Mono", monospace`;
+      ctx.fillStyle = C.code;
+      const chars = Math.min(Math.floor(age / 18), event.text.length);
+      ctx.fillText(event.text.substring(0, chars), startX + 12, y);
+    }
+
+    ctx.globalAlpha = 1;
+  });
+
+  // Progress inside terminal
+  const progY = termY + termH - 14;
+  const progX = termX + 20;
+  const progW = termW - 40;
+  ctx.fillStyle = C.border;
+  ctx.fillRect(progX, progY, progW, 2);
+  const maxT = events[events.length - 1].t;
+  const grd = ctx.createLinearGradient(progX, 0, progX + progW, 0);
+  grd.addColorStop(0, C.rust);
+  grd.addColorStop(1, C.gold);
+  ctx.fillStyle = grd;
+  ctx.fillRect(progX, progY, Math.max((elapsed / maxT) * progW, 2), 2);
+
+  ctx.restore();
+}
+
+function drawImageReveal(elapsed) {
+  // Find the current image-reveal event
+  const reveals = events.filter(e => e.type === 'image-reveal' && e.t <= elapsed);
+  const current = reveals[reveals.length - 1];
+  if (!current) return;
+
+  const age = elapsed - current.t;
+  const img = images[current.key];
+
+  // Fade in the image
+  const imgFade = easeOut(Math.min(age / 800, 1));
+
+  // Image takes up right 55% of screen with dark bg
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Draw image — large, centered-right
+  const imgW = 520;
+  const imgH = 620;
+  const imgX = W - imgW - 60;
+  const imgY = (H - imgH) / 2;
+
+  ctx.globalAlpha = imgFade;
+  // Image frame
+  drawRoundRect(imgX - 2, imgY - 2, imgW + 4, imgH + 4, 10);
+  ctx.strokeStyle = C.border;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.save();
+  drawRoundRect(imgX, imgY, imgW, imgH, 8);
+  ctx.clip();
+  drawImageCover(img, imgX, imgY, imgW, imgH);
+  ctx.restore();
+
+  // Label on the left side
+  const labelFade = easeOut(Math.min((age - 400) / 600, 1));
+  ctx.globalAlpha = Math.max(labelFade, 0);
+
+  const labelX = 80;
+  const labelY = H / 2;
+
+  ctx.font = '600 36px -apple-system, sans-serif';
+  ctx.fillStyle = C.text;
+  // Split label at ·
+  const parts = current.label.split(' · ');
+  ctx.fillText(parts[0], labelX, labelY - 10);
+
+  if (parts[1]) {
+    ctx.font = '300 22px -apple-system, sans-serif';
+    ctx.fillStyle = C.gold;
+    ctx.fillText(parts[1], labelX, labelY + 25);
+  }
+
+  // Small "Garden of Eden" branding
+  ctx.font = '500 12px -apple-system, sans-serif';
+  ctx.fillStyle = C.dim;
+  ctx.fillText('GARDEN OF EDEN', labelX, labelY - 50);
+
+  ctx.globalAlpha = 1;
+}
+
+function drawImageGrid(elapsed) {
+  const grids = events.filter(e => e.type === 'image-grid' && e.t <= elapsed);
+  const current = grids[grids.length - 1];
+  if (!current) return;
+
+  const age = elapsed - current.t;
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  const keys = current.keys;
+  const cols = 2;
+  const rows = 2;
+  const gap = 16;
+  const totalW = W - 160;
+  const totalH = H - 120;
+  const cellW = (totalW - gap * (cols - 1)) / cols;
+  const cellH = (totalH - gap * (rows - 1)) / rows;
+  const startX = 80;
+  const startY = 60;
+
+  keys.forEach((key, i) => {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const x = startX + col * (cellW + gap);
+    const y = startY + row * (cellH + gap);
+    const delay = i * 400;
+    const cellAge = age - delay;
+    if (cellAge < 0) return;
+
+    const fade = easeOut(Math.min(cellAge / 600, 1));
+    const scale = lerp(0.92, 1, easeOut(Math.min(cellAge / 800, 1)));
+    ctx.globalAlpha = fade;
+
+    ctx.save();
+    const cx = x + cellW / 2;
+    const cy = y + cellH / 2;
+    ctx.translate(cx, cy);
+    ctx.scale(scale, scale);
+    ctx.translate(-cx, -cy);
+
+    drawRoundRect(x, y, cellW, cellH, 10);
+    ctx.clip();
+    drawImageCover(images[key], x, y, cellW, cellH);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  });
+}
+
+function drawFrame(elapsed) {
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  const mode = getActiveMode(elapsed);
+
+  if (mode === 'title-card') {
+    const card = getCurrentTitleCard(elapsed);
+    if (card) drawTitleCard(card, elapsed);
+  } else if (mode === 'image-reveal') {
+    drawImageReveal(elapsed);
+  } else if (mode === 'image-grid') {
+    drawImageGrid(elapsed);
+  } else {
+    drawTerminal(elapsed);
+  }
+
+  // Watermark (always)
+  ctx.globalAlpha = 0.2;
+  ctx.font = 'bold 13px -apple-system, sans-serif';
+  ctx.fillStyle = C.dim;
+  ctx.textAlign = 'right';
+  ctx.fillText('codevibing', W - 24, H - 12);
+  ctx.textAlign = 'left';
+  ctx.globalAlpha = 1;
+
+  // Bottom progress bar (always)
+  const maxT = events[events.length - 1].t;
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  ctx.fillRect(0, H - 3, W, 3);
+  const grd = ctx.createLinearGradient(0, 0, W, 0);
+  grd.addColorStop(0, C.rust);
+  grd.addColorStop(1, C.violet);
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, H - 3, Math.max((elapsed / maxT) * W, 2), 3);
+}
+
+function animate(timestamp) {
+  if (!startTime) startTime = timestamp;
+  const elapsed = timestamp - startTime;
+  drawFrame(elapsed);
+
+  const maxT = events[events.length - 1].t;
+  if (elapsed < maxT + 2000) {
+    animFrame = requestAnimationFrame(animate);
+  } else {
+    if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+    document.getElementById('status').textContent = 'Done! Video downloading...';
+    document.getElementById('recordBtn').textContent = 'Play Again';
+    document.getElementById('recordBtn').className = '';
+  }
+}
+
+function startRecording() {
+  startTime = null;
+  zoom = 1; zoomTarget = 1; panY = 0; panYTarget = 0;
+  if (animFrame) cancelAnimationFrame(animFrame);
+
+  const stream = canvas.captureStream(30);
+  chunks = [];
+  mediaRecorder = new MediaRecorder(stream, {
+    mimeType: 'video/webm;codecs=vp9',
+    videoBitsPerSecond: 8000000
+  });
+
+  mediaRecorder.ondataavailable = (e) => {
+    if (e.data.size > 0) chunks.push(e.data);
+  };
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(chunks, { type: 'video/webm' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'codevibing-fashionarchaeology.webm';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  mediaRecorder.start();
+  document.getElementById('recordBtn').textContent = 'Recording...';
+  document.getElementById('recordBtn').className = 'recording';
+  document.getElementById('status').textContent = 'Recording Fashion Archaeology session...';
+
+  animFrame = requestAnimationFrame(animate);
+}
+
+// Initial frame
+drawFrame(0);
+</script>
+
+</body>
+</html>

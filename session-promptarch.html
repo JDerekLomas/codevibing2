@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>codevibing — prompt archaeology session</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: -apple-system, sans-serif; color: white; }
+  #controls { margin-bottom: 20px; display: flex; gap: 12px; align-items: center; }
+  #controls button {
+    padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  #recordBtn { background: #8b5cf6; color: white; }
+  #recordBtn:hover { background: #7c3aed; }
+  #recordBtn.recording { background: #ef4444; }
+  #status { font-size: 13px; color: #6a6a80; }
+  canvas { border-radius: 12px; box-shadow: 0 0 60px rgba(139, 92, 246, 0.1); }
+</style>
+</head>
+<body>
+
+<div id="controls">
+  <button id="recordBtn" onclick="startRecording()">Record & Play</button>
+  <span id="status">Prompt Archaeology — ready to record</span>
+</div>
+<canvas id="canvas" width="1280" height="720"></canvas>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const W = 1280, H = 720;
+
+// Color palette — warm archaeological tones mixed with the codevibing aesthetic
+const C = {
+  bg: '#0a0a0f',
+  surface: '#12121a',
+  border: '#1e1e2e',
+  text: '#e8e0d8',
+  dim: '#6a6058',
+  accent: '#9e4a3a',    // rust/archaeological
+  violet: '#8b5cf6',
+  green: '#34d399',
+  blue: '#60a5fa',
+  orange: '#fb923c',
+  pink: '#f472b6',
+  cream: '#f5f0e8',
+  warm: '#c4956a',
+};
+
+// Project colors for the heatmap visualization
+const PROJECT_COLORS = [
+  '#9e4a3a', '#8b5cf6', '#34d399', '#60a5fa', '#fb923c',
+  '#f472b6', '#c4956a', '#ef4444', '#eab308', '#22c55e',
+];
+
+// Real data — daily prompt counts for the heatmap animation
+const dailyData = [
+  { d: 'Nov 25', p: 34 }, { d: 'Nov 26', p: 6 }, { d: 'Nov 30', p: 26 },
+  { d: 'Dec 1', p: 28 }, { d: 'Dec 5', p: 131 }, { d: 'Dec 7', p: 108 },
+  { d: 'Dec 9', p: 256 }, { d: 'Dec 15', p: 121 }, { d: 'Dec 17', p: 267 },
+  { d: 'Dec 21', p: 182 }, { d: 'Dec 25', p: 299 }, { d: 'Dec 27', p: 282 },
+  { d: 'Dec 30', p: 229 }, { d: 'Jan 1', p: 301 }, { d: 'Jan 4', p: 267 },
+  { d: 'Jan 6', p: 286 }, { d: 'Jan 9', p: 297 }, { d: 'Jan 12', p: 477 },
+  { d: 'Jan 18', p: 321 }, { d: 'Jan 20', p: 297 }, { d: 'Jan 26', p: 370 },
+  { d: 'Feb 2', p: 793 }, { d: 'Feb 3', p: 477 }, { d: 'Feb 4', p: 176 },
+];
+
+// Session events — the story of building Prompt Archaeology
+const events = [
+  // Title card
+  { t: 0, type: 'scene', title: 'Prompt Archaeology', subtitle: 'derek lomas · 68 days of building with AI' },
+
+  // The question
+  { t: 3500, type: 'scene', title: '', subtitle: '' },
+  { t: 4000, type: 'prompt', user: 'derek', text: "I ran an analysis on my Claude Code history" },
+  { t: 6000, type: 'prompt', user: 'derek', text: "not for optimization. for archaeology." },
+
+  // The numbers emerge
+  { t: 8500, type: 'bigstat', value: '10,497', label: 'prompts' },
+  { t: 10500, type: 'bigstat', value: '68', label: 'days' },
+  { t: 12000, type: 'bigstat', value: '53', label: 'projects' },
+
+  // Three questions
+  { t: 14000, type: 'scene', title: 'three questions', subtitle: '' },
+  { t: 15500, type: 'ai', text: "What's the shape of the work over time?" },
+  { t: 17500, type: 'ai', text: "What's the rhythm of context-switching?" },
+  { t: 19500, type: 'ai', text: "What patterns actually work?" },
+
+  // Act I
+  { t: 22000, type: 'scene', title: 'Act I: Experimentation', subtitle: 'Nov 25 – Dec 16 · "What can I do with this thing?"' },
+  { t: 25500, type: 'code', text: 'mcqmcp — MCQ assessment tool' },
+  { t: 26500, type: 'code', text: 'latinclaude — Latin translation' },
+  { t: 27500, type: 'code', text: 'blendercell — 3D experiments' },
+  { t: 28500, type: 'code', text: 'soma — neural simulation' },
+  { t: 29500, type: 'comment', text: '5-8 projects simultaneously. Nothing ships yet.' },
+  { t: 31000, type: 'comment', text: 'Testing boundaries.' },
+
+  // Act II
+  { t: 33000, type: 'scene', title: 'Act II: Foundation', subtitle: 'Dec 17 – Jan 6 · "Build the core asset"' },
+  { t: 36500, type: 'result', text: 'sourcelibrary-v2 — 2,216 prompts' },
+  { t: 38000, type: 'result', text: 'One project dominates everything.' },
+  { t: 40000, type: 'prompt', user: 'derek', text: 'Christmas Day: 299 prompts on Source Library' },
+  { t: 42000, type: 'comment', text: 'who does this on Christmas?' },
+
+  // Act III
+  { t: 44000, type: 'scene', title: 'Act III: Commercialization', subtitle: 'Jan 6 – Feb 4 · "Ship products for users"' },
+  { t: 47500, type: 'code', text: 'playpowerlearn — 1,605 prompts' },
+  { t: 48500, type: 'code', text: 'lilbookies — 1,550 prompts' },
+  { t: 49500, type: 'code', text: 'AIED — 1,425 prompts in 6 days' },
+  { t: 51000, type: 'result', text: 'The experiments became products.' },
+
+  // The peak
+  { t: 53000, type: 'scene', title: '', subtitle: '' },
+  { t: 53500, type: 'bigstat', value: '793', label: 'prompts on Feb 2nd' },
+
+  // The interleave
+  { t: 56000, type: 'scene', title: 'The Interleave', subtitle: '' },
+  { t: 58000, type: 'ai', text: "The real signature isn't parallel projects." },
+  { t: 60000, type: 'ai', text: "It's multiplexed attention." },
+  { t: 62000, type: 'result', text: '36 seconds average between switches' },
+  { t: 63500, type: 'result', text: '1,645 switches on peak day' },
+  { t: 65000, type: 'comment', text: 'Like a DJ mixing between tracks.' },
+
+  // The heatmap builds
+  { t: 67500, type: 'heatmap', text: 'building the calendar...' },
+
+  // Meta
+  { t: 82000, type: 'scene', title: '', subtitle: '' },
+  { t: 82500, type: 'prompt', user: 'derek', text: 'What does a body of work look like' },
+  { t: 84500, type: 'prompt', user: 'derek', text: 'when you\'re building with AI every day?' },
+
+  // End
+  { t: 87500, type: 'scene', title: 'promptarchaeology', subtitle: '10,497 prompts · 68 days · 53 projects' },
+  { t: 92000, type: 'end' },
+];
+
+let startTime = null;
+let animFrame = null;
+let mediaRecorder = null;
+let chunks = [];
+
+// Heatmap state
+let heatmapCells = [];
+let heatmapStartTime = null;
+
+function drawRoundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function lerp(a, b, t) { return a + (b - a) * Math.min(Math.max(t, 0), 1); }
+function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+
+function drawHeatmap(elapsed, heatmapStart) {
+  const age = elapsed - heatmapStart;
+  if (age < 0) return;
+
+  const cellSize = 18;
+  const gap = 3;
+  const cols = 10; // ~10 weeks
+  const rows = 7;
+  const startX = W / 2 - (cols * (cellSize + gap)) / 2;
+  const startY = H / 2 - (rows * (cellSize + gap)) / 2 - 30;
+
+  // Title
+  const titleFade = Math.min(age / 500, 1);
+  ctx.globalAlpha = titleFade;
+  ctx.font = 'bold 14px -apple-system, sans-serif';
+  ctx.fillStyle = C.dim;
+  ctx.textAlign = 'center';
+  ctx.fillText('68 DAYS OF PROMPTS', W / 2, startY - 20);
+  ctx.textAlign = 'left';
+
+  // Generate all 68 days of cells
+  if (heatmapCells.length === 0) {
+    // Real daily data mapped to grid
+    const allDays = [
+      34,6,0,0,0,26,28,0,13,4,10,131,83,108,102,256,75,54,58,1,21,121,56,
+      267,170,18,56,182,102,70,79,299,261,282,166,224,229,156,301,108,83,267,
+      81,286,4,293,297,262,175,477,267,244,149,68,70,321,42,297,144,234,37,0,
+      85,370,47,1,5,116,2,170,793,477,176
+    ];
+    for (let i = 0; i < allDays.length && i < cols * rows; i++) {
+      const col = Math.floor(i / rows);
+      const row = i % rows;
+      heatmapCells.push({
+        x: startX + col * (cellSize + gap),
+        y: startY + row * (cellSize + gap),
+        value: allDays[i],
+        delay: i * 80 + Math.random() * 40,
+      });
+    }
+  }
+
+  // Draw cells
+  heatmapCells.forEach((cell) => {
+    const cellAge = age - cell.delay;
+    if (cellAge < 0) return;
+
+    const fadeIn = easeOut(Math.min(cellAge / 300, 1));
+    ctx.globalAlpha = fadeIn;
+
+    // Color based on prompt count
+    let intensity = 0;
+    if (cell.value > 0) intensity = Math.min(cell.value / 400, 1);
+
+    if (cell.value === 0) {
+      ctx.fillStyle = C.border;
+    } else {
+      const r = Math.round(lerp(30, 158, intensity));
+      const g = Math.round(lerp(30, 74, intensity * 0.5));
+      const b = Math.round(lerp(40, 58, intensity * 0.3));
+      ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+    }
+
+    drawRoundRect(cell.x, cell.y, cellSize, cellSize, 3);
+    ctx.fill();
+
+    // Glow on high-count days
+    if (cell.value > 400 && cellAge > 200) {
+      ctx.shadowColor = C.accent;
+      ctx.shadowBlur = 8;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+  });
+
+  // Stats below heatmap
+  const statsY = startY + rows * (cellSize + gap) + 30;
+  const statsAge = age - 3000;
+  if (statsAge > 0) {
+    const statsFade = Math.min(statsAge / 500, 1);
+    ctx.globalAlpha = statsFade;
+    ctx.font = '13px -apple-system, sans-serif';
+    ctx.fillStyle = C.dim;
+    ctx.textAlign = 'center';
+
+    // Animate the count up
+    const countProgress = easeOut(Math.min(statsAge / 2000, 1));
+    const displayCount = Math.floor(10497 * countProgress).toLocaleString();
+    ctx.font = 'bold 32px -apple-system, sans-serif';
+    ctx.fillStyle = C.cream;
+    ctx.fillText(displayCount + ' prompts', W / 2, statsY + 10);
+
+    ctx.font = '14px -apple-system, sans-serif';
+    ctx.fillStyle = C.dim;
+    ctx.fillText('Nov 25, 2025 → Feb 4, 2026', W / 2, statsY + 35);
+    ctx.textAlign = 'left';
+  }
+
+  // Peak day callout
+  const peakAge = age - 5500;
+  if (peakAge > 0) {
+    const peakFade = Math.min(peakAge / 400, 1);
+    ctx.globalAlpha = peakFade;
+
+    // Find the Feb 2 cell (index ~70)
+    const peakCell = heatmapCells[heatmapCells.length - 3]; // roughly Feb 2
+    if (peakCell) {
+      ctx.strokeStyle = C.orange;
+      ctx.lineWidth = 2;
+      drawRoundRect(peakCell.x - 3, peakCell.y - 3, cellSize + 6, cellSize + 6, 5);
+      ctx.stroke();
+
+      ctx.font = '11px -apple-system, sans-serif';
+      ctx.fillStyle = C.orange;
+      ctx.textAlign = 'center';
+      ctx.fillText('793', peakCell.x + cellSize / 2, peakCell.y - 8);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  ctx.globalAlpha = 1;
+}
+
+function drawSceneTitle(scene, elapsed) {
+  const age = elapsed - scene.t;
+  const fadeIn = Math.min(age / 800, 1);
+  ctx.globalAlpha = easeOut(fadeIn);
+
+  if (scene.title) {
+    ctx.font = 'bold 56px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+
+    // Use warm gradient for archaeological feel
+    const grd = ctx.createLinearGradient(W/2 - 300, 0, W/2 + 300, 0);
+    grd.addColorStop(0, C.accent);
+    grd.addColorStop(0.5, C.warm);
+    grd.addColorStop(1, C.accent);
+    ctx.fillStyle = grd;
+    ctx.fillText(scene.title, W / 2, H / 2 - 10);
+  }
+
+  if (scene.subtitle) {
+    ctx.font = '18px -apple-system, sans-serif';
+    ctx.fillStyle = C.dim;
+    ctx.textAlign = 'center';
+    ctx.fillText(scene.subtitle, W / 2, H / 2 + 35);
+  }
+
+  ctx.textAlign = 'left';
+  ctx.globalAlpha = 1;
+}
+
+function drawBigStat(event, elapsed) {
+  const age = elapsed - event.t;
+  const fadeIn = easeOut(Math.min(age / 600, 1));
+  ctx.globalAlpha = fadeIn;
+
+  // Count up effect
+  const numericValue = parseInt(event.value.replace(/,/g, ''));
+  const countProgress = easeOut(Math.min(age / 1200, 1));
+  const displayNum = Math.floor(numericValue * countProgress);
+  const displayValue = displayNum.toLocaleString();
+
+  ctx.font = 'bold 120px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  const grd = ctx.createLinearGradient(W/2 - 200, H/2, W/2 + 200, H/2);
+  grd.addColorStop(0, C.violet);
+  grd.addColorStop(1, C.pink);
+  ctx.fillStyle = grd;
+  ctx.fillText(displayValue, W / 2, H / 2);
+
+  ctx.font = '22px -apple-system, sans-serif';
+  ctx.fillStyle = C.dim;
+  ctx.fillText(event.label, W / 2, H / 2 + 45);
+  ctx.textAlign = 'left';
+  ctx.globalAlpha = 1;
+}
+
+function isActiveScene(event, elapsed) {
+  // Check if this scene is the current one (no content events after it yet)
+  const laterContent = events.filter(e => e.t > event.t && e.t <= elapsed && e.type !== 'scene' && e.type !== 'end');
+  return laterContent.length === 0;
+}
+
+function drawFrame(elapsed) {
+  // Background
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle warm ambient glow
+  const grd = ctx.createRadialGradient(W/2, H/3, 0, W/2, H/3, 500);
+  grd.addColorStop(0, 'rgba(158, 74, 58, 0.04)');
+  grd.addColorStop(1, 'transparent');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, W, H);
+
+  const visible = events.filter(e => e.t <= elapsed && e.type !== 'end');
+
+  // Find current scene
+  let currentScene = null;
+  for (let i = visible.length - 1; i >= 0; i--) {
+    if (visible[i].type === 'scene') { currentScene = visible[i]; break; }
+  }
+
+  // Check for bigstat — they take over the whole screen
+  let currentBigStat = null;
+  for (let i = visible.length - 1; i >= 0; i--) {
+    if (visible[i].type === 'bigstat') {
+      // Only show if no later non-bigstat content
+      const laterContent = events.filter(e => e.t > visible[i].t && e.t <= elapsed && e.type !== 'bigstat' && e.type !== 'end');
+      if (laterContent.length === 0) { currentBigStat = visible[i]; break; }
+    }
+  }
+
+  // Check for heatmap mode
+  const heatmapEvent = events.find(e => e.type === 'heatmap');
+  const inHeatmapMode = heatmapEvent && elapsed >= heatmapEvent.t;
+  const nextSceneAfterHeatmap = events.find(e => e.t > heatmapEvent?.t && e.type === 'scene');
+  const heatmapDone = nextSceneAfterHeatmap && elapsed >= nextSceneAfterHeatmap.t;
+
+  if (inHeatmapMode && !heatmapDone) {
+    drawHeatmap(elapsed, heatmapEvent.t);
+    drawWatermark();
+    drawProgress(elapsed);
+    return;
+  }
+
+  if (currentBigStat) {
+    drawBigStat(currentBigStat, elapsed);
+    drawWatermark();
+    drawProgress(elapsed);
+    return;
+  }
+
+  // Scene title cards
+  if (currentScene && currentScene.title && isActiveScene(currentScene, elapsed)) {
+    drawSceneTitle(currentScene, elapsed);
+    drawWatermark();
+    drawProgress(elapsed);
+    return;
+  }
+
+  // Terminal view for conversation
+  const termX = 80, termY = 40, termW = W - 160, termH = H - 80;
+  drawRoundRect(termX, termY, termW, termH, 12);
+  ctx.fillStyle = C.surface;
+  ctx.fill();
+  ctx.strokeStyle = C.border;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Title bar
+  drawRoundRect(termX, termY, termW, 40, 12);
+  ctx.fillStyle = '#161620';
+  ctx.fill();
+
+  const dotY = termY + 20;
+  [[termX + 20, '#ef4444'], [termX + 38, '#eab308'], [termX + 56, '#22c55e']].forEach(([dx, color]) => {
+    ctx.beginPath();
+    ctx.arc(dx, dotY, 5, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.7;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  });
+
+  ctx.font = '12px "SF Mono", monospace';
+  ctx.fillStyle = C.dim;
+  ctx.fillText('prompt archaeology', termX + 80, dotY + 4);
+
+  // Time
+  const secs = Math.floor(elapsed / 1000);
+  ctx.textAlign = 'right';
+  ctx.fillText(`${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')}`, termX + termW - 20, dotY + 4);
+  ctx.textAlign = 'left';
+
+  // Content lines
+  const contentEvents = visible.filter(e => !['scene','end','bigstat','heatmap'].includes(e.type));
+  const lineHeight = 38;
+  const contentY = termY + 70;
+  const contentX = termX + 30;
+  const maxLines = Math.floor((termH - 110) / lineHeight);
+  const displayEvents = contentEvents.slice(-maxLines);
+
+  displayEvents.forEach((event, i) => {
+    const y = contentY + i * lineHeight;
+    const age = elapsed - event.t;
+    ctx.globalAlpha = easeOut(Math.min(age / 300, 1));
+
+    if (event.type === 'prompt') {
+      ctx.font = 'bold 15px "SF Mono", monospace';
+      ctx.fillStyle = C.green;
+      const prefix = `${event.user} > `;
+      ctx.fillText(prefix, contentX, y);
+      const prefixW = ctx.measureText(prefix).width;
+      ctx.font = '15px "SF Mono", monospace';
+      ctx.fillStyle = C.text;
+      const charCount = Math.min(Math.floor(age / 30), event.text.length);
+      ctx.fillText(event.text.substring(0, charCount), contentX + prefixW, y);
+      if (charCount < event.text.length && Math.floor(elapsed / 500) % 2 === 0) {
+        const tw = ctx.measureText(event.text.substring(0, charCount)).width;
+        ctx.fillStyle = C.violet;
+        ctx.fillRect(contentX + prefixW + tw + 2, y - 12, 9, 16);
+      }
+    } else if (event.type === 'ai') {
+      ctx.font = '15px "SF Mono", monospace';
+      ctx.fillStyle = C.blue;
+      const charCount = Math.min(Math.floor(age / 20), event.text.length);
+      ctx.fillText(event.text.substring(0, charCount), contentX + 8, y);
+    } else if (event.type === 'result') {
+      ctx.font = '14px "SF Mono", monospace';
+      ctx.fillStyle = C.orange;
+      ctx.fillText('  ' + event.text, contentX, y);
+    } else if (event.type === 'code') {
+      ctx.font = '14px "SF Mono", monospace';
+      ctx.fillStyle = C.warm;
+      const charCount = Math.min(Math.floor(age / 15), event.text.length);
+      ctx.fillText('  ' + event.text.substring(0, charCount), contentX, y);
+    } else if (event.type === 'comment') {
+      ctx.font = 'italic 14px "SF Mono", monospace';
+      ctx.fillStyle = C.dim;
+      ctx.fillText('  ' + event.text, contentX, y);
+    }
+
+    ctx.globalAlpha = 1;
+  });
+
+  drawWatermark();
+  drawProgress(elapsed);
+}
+
+function drawWatermark() {
+  ctx.font = 'bold 13px -apple-system, sans-serif';
+  ctx.fillStyle = C.dim;
+  ctx.globalAlpha = 0.25;
+  ctx.textAlign = 'right';
+  ctx.fillText('codevibing', W - 30, H - 16);
+  ctx.textAlign = 'left';
+  ctx.globalAlpha = 1;
+}
+
+function drawProgress(elapsed) {
+  const maxT = events[events.length - 1].t;
+  const progW = W - 80;
+  const progX = 40;
+  const progY = H - 6;
+  ctx.fillStyle = C.border;
+  ctx.fillRect(progX, progY, progW, 2);
+  const fillW = (elapsed / maxT) * progW;
+  const grd = ctx.createLinearGradient(progX, 0, progX + progW, 0);
+  grd.addColorStop(0, C.accent);
+  grd.addColorStop(1, C.violet);
+  ctx.fillStyle = grd;
+  ctx.fillRect(progX, progY, Math.max(fillW, 2), 2);
+}
+
+function animate(timestamp) {
+  if (!startTime) startTime = timestamp;
+  const elapsed = timestamp - startTime;
+
+  drawFrame(elapsed);
+
+  const maxT = events[events.length - 1].t;
+  if (elapsed < maxT + 2000) {
+    animFrame = requestAnimationFrame(animate);
+  } else {
+    if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+    document.getElementById('status').textContent = 'Done! Video downloading...';
+    document.getElementById('recordBtn').textContent = 'Play Again';
+    document.getElementById('recordBtn').className = '';
+  }
+}
+
+function startRecording() {
+  startTime = null;
+  heatmapCells = [];
+  if (animFrame) cancelAnimationFrame(animFrame);
+
+  const stream = canvas.captureStream(30);
+  chunks = [];
+  mediaRecorder = new MediaRecorder(stream, {
+    mimeType: 'video/webm;codecs=vp9',
+    videoBitsPerSecond: 5000000
+  });
+
+  mediaRecorder.ondataavailable = (e) => {
+    if (e.data.size > 0) chunks.push(e.data);
+  };
+
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(chunks, { type: 'video/webm' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'codevibing-promptarchaeology.webm';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  mediaRecorder.start();
+  document.getElementById('recordBtn').textContent = 'Recording...';
+  document.getElementById('recordBtn').className = 'recording';
+  document.getElementById('status').textContent = 'Recording Prompt Archaeology session...';
+
+  animFrame = requestAnimationFrame(animate);
+}
+
+// Draw initial frame
+drawFrame(0);
+</script>
+
+</body>
+</html>

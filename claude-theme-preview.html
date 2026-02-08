@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude AI Terminal Color Palette Preview</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #f5f4f0 0%, #eae7e0 100%);
+            padding: 60px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .header h1 {
+            font-family: 'Merriweather', serif;
+            font-size: 3em;
+            color: #2c2c2c;
+            margin-bottom: 12px;
+            letter-spacing: -1px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .header-accent {
+            display: inline-block;
+            width: 60px;
+            height: 4px;
+            background: #da7756;
+            margin-top: 20px;
+            border-radius: 2px;
+        }
+
+        .themes-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 1200px) {
+            .themes-wrapper {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .theme-section {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .theme-title {
+            font-family: 'Merriweather', serif;
+            font-size: 1.8em;
+            color: #2c2c2c;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+        }
+
+        .theme-title::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: #da7756;
+            border-radius: 50%;
+            margin-right: 12px;
+        }
+
+        .terminal-window {
+            background: #1a1815;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            margin-bottom: 30px;
+        }
+
+        .terminal-header {
+            background: #2d2a25;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid rgba(232, 230, 227, 0.1);
+        }
+
+        .terminal-button {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #da7756;
+        }
+
+        .terminal-button:nth-child(2) {
+            background: #E5C07B;
+        }
+
+        .terminal-button:nth-child(3) {
+            background: #98C379;
+        }
+
+        .terminal-title {
+            flex: 1;
+            margin-left: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85em;
+            color: #8a8680;
+        }
+
+        .terminal-content {
+            padding: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95em;
+            line-height: 1.6;
+            color: #e8e6e3;
+            min-height: 220px;
+            position: relative;
+        }
+
+        .terminal-line {
+            margin-bottom: 8px;
+        }
+
+        .terminal-prompt {
+            color: #61AFEF;
+        }
+
+        .terminal-command {
+            color: #e8e6e3;
+        }
+
+        .terminal-output {
+            color: #98C379;
+        }
+
+        .terminal-error {
+            color: #da7756;
+        }
+
+        .terminal-accent {
+            color: #C678DD;
+        }
+
+        .light-theme .terminal-window {
+            background: #faf9f5;
+            border: 1px solid #e0dcd5;
+        }
+
+        .light-theme .terminal-header {
+            background: #e8e6e3;
+            border-bottom: 1px solid #d4d0c8;
+        }
+
+        .light-theme .terminal-title {
+            color: #8b8680;
+        }
+
+        .light-theme .terminal-content {
+            color: #2c2c2c;
+        }
+
+        .light-theme .terminal-prompt {
+            color: #4078F2;
+        }
+
+        .light-theme .terminal-command {
+            color: #2c2c2c;
+        }
+
+        .light-theme .terminal-output {
+            color: #50A14F;
+        }
+
+        .light-theme .terminal-error {
+            color: #C15F3C;
+        }
+
+        .light-theme .terminal-accent {
+            color: #A626A4;
+        }
+
+        .color-palette {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 12px;
+            margin-top: 30px;
+        }
+
+        .color-swatch {
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .color-swatch:hover {
+            transform: translateY(-4px);
+        }
+
+        .color-box {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: box-shadow 0.2s ease;
+        }
+
+        .color-swatch:hover .color-box {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+        }
+
+        .color-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .color-hex {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75em;
+            color: #999;
+            line-height: 1.3;
+        }
+
+        .color-name {
+            font-size: 0.75em;
+            color: #999;
+            margin-top: 2px;
+        }
+
+        .info-section {
+            background: #f9f7f3;
+            border-left: 4px solid #da7756;
+            padding: 16px;
+            border-radius: 4px;
+            margin-top: 30px;
+            font-size: 0.95em;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .info-section strong {
+            color: #2c2c2c;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 40px;
+            border-top: 2px solid #e0dcd5;
+            color: #888;
+            font-size: 0.95em;
+        }
+
+        .footer-accent {
+            color: #da7756;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Claude Terminal Theme</h1>
+            <p>A warm, professional color palette inspired by Claude AI</p>
+            <div class="header-accent"></div>
+        </div>
+
+        <div class="themes-wrapper">
+            <!-- DARK THEME -->
+            <div class="theme-section">
+                <h2 class="theme-title">Dark Theme</h2>
+
+                <div class="terminal-window">
+                    <div class="terminal-header">
+                        <div class="terminal-button"></div>
+                        <div class="terminal-button"></div>
+                        <div class="terminal-button"></div>
+                        <div class="terminal-title">claude-code — bash — 80×24</div>
+                    </div>
+                    <div class="terminal-content">
+                        <div class="terminal-line"><span class="terminal-prompt">➜</span>  <span class="terminal-command">claude</span> analyze src/main.rs</div>
+                        <div class="terminal-line" style="color: #e8e6e3; margin-top: 12px;"><span style="color: #61AFEF;">✨ Analyzing</span> Rust module structure...</div>
+                        <div class="terminal-line"><span class="terminal-output">✓ Found 12 public functions</span></div>
+                        <div class="terminal-line"><span class="terminal-accent">→</span> Suggested refactor: Extract error handling into separate module</div>
+                        <div class="terminal-line" style="margin-top: 12px;"><span class="terminal-prompt">➜</span>  <span class="terminal-command">claude</span> test --coverage</div>
+                        <div class="terminal-line" style="color: #98C379;">running 8 tests</div>
+                        <div class="terminal-line" style="color: #98C379;">test result: <span style="color: #98C379; font-weight: bold;">ok</span>. 8 passed; 0 failed</div>
+                        <div class="terminal-line" style="color: #E5C07B;">coverage: 87%</div>
+                    </div>
+                </div>
+
+                <div class="color-palette">
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #2d2a25;"></div>
+                        <div class="color-label">0</div>
+                        <div class="color-hex">#2d2a25</div>
+                        <div class="color-name">Black</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #da7756;"></div>
+                        <div class="color-label">1</div>
+                        <div class="color-hex">#da7756</div>
+                        <div class="color-name">Red</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #98C379;"></div>
+                        <div class="color-label">2</div>
+                        <div class="color-hex">#98C379</div>
+                        <div class="color-name">Green</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #E5C07B;"></div>
+                        <div class="color-label">3</div>
+                        <div class="color-hex">#E5C07B</div>
+                        <div class="color-name">Yellow</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #61AFEF;"></div>
+                        <div class="color-label">4</div>
+                        <div class="color-hex">#61AFEF</div>
+                        <div class="color-name">Blue</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #C678DD;"></div>
+                        <div class="color-label">5</div>
+                        <div class="color-hex">#C678DD</div>
+                        <div class="color-name">Magenta</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #56B6C2;"></div>
+                        <div class="color-label">6</div>
+                        <div class="color-hex">#56B6C2</div>
+                        <div class="color-name">Cyan</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #e8e6e3;"></div>
+                        <div class="color-label">7</div>
+                        <div class="color-hex">#e8e6e3</div>
+                        <div class="color-name">White</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #5c5750;"></div>
+                        <div class="color-label">8</div>
+                        <div class="color-hex">#5c5750</div>
+                        <div class="color-name">Bright Black</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #FFB38A;"></div>
+                        <div class="color-label">9</div>
+                        <div class="color-hex">#FFB38A</div>
+                        <div class="color-name">Bright Red</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #B5E890;"></div>
+                        <div class="color-label">10</div>
+                        <div class="color-hex">#B5E890</div>
+                        <div class="color-name">Bright Green</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #FFD68A;"></div>
+                        <div class="color-label">11</div>
+                        <div class="color-hex">#FFD68A</div>
+                        <div class="color-name">Bright Yellow</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #7EC8F2;"></div>
+                        <div class="color-label">12</div>
+                        <div class="color-hex">#7EC8F2</div>
+                        <div class="color-name">Bright Blue</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #D9A0E8;"></div>
+                        <div class="color-label">13</div>
+                        <div class="color-hex">#D9A0E8</div>
+                        <div class="color-name">Bright Magenta</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #73D0DB;"></div>
+                        <div class="color-label">14</div>
+                        <div class="color-hex">#73D0DB</div>
+                        <div class="color-name">Bright Cyan</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #faf9f5;"></div>
+                        <div class="color-label">15</div>
+                        <div class="color-hex">#faf9f5</div>
+                        <div class="color-name">Bright White</div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <strong>Background:</strong> #1a1815 | <strong>Foreground:</strong> #e8e6e3<br>
+                    <strong>Best for:</strong> Extended coding sessions with reduced eye strain
+                </div>
+            </div>
+
+            <!-- LIGHT THEME -->
+            <div class="theme-section light-theme">
+                <h2 class="theme-title">Light Theme</h2>
+
+                <div class="terminal-window">
+                    <div class="terminal-header">
+                        <div class="terminal-button"></div>
+                        <div class="terminal-button"></div>
+                        <div class="terminal-button"></div>
+                        <div class="terminal-title">claude-code — bash — 80×24</div>
+                    </div>
+                    <div class="terminal-content">
+                        <div class="terminal-line"><span class="terminal-prompt">➜</span>  <span class="terminal-command">claude</span> analyze src/main.rs</div>
+                        <div class="terminal-line" style="margin-top: 12px;"><span class="terminal-prompt">✨ Analyzing</span> Rust module structure...</div>
+                        <div class="terminal-line"><span class="terminal-output">✓ Found 12 public functions</span></div>
+                        <div class="terminal-line"><span class="terminal-accent">→</span> Suggested refactor: Extract error handling into separate module</div>
+                        <div class="terminal-line" style="margin-top: 12px;"><span class="terminal-prompt">➜</span>  <span class="terminal-command">claude</span> test --coverage</div>
+                        <div class="terminal-line" style="color: #50A14F;">running 8 tests</div>
+                        <div class="terminal-line" style="color: #50A14F;">test result: <span style="color: #50A14F; font-weight: bold;">ok</span>. 8 passed; 0 failed</div>
+                        <div class="terminal-line" style="color: #C18401;">coverage: 87%</div>
+                    </div>
+                </div>
+
+                <div class="color-palette">
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #2c2c2c;"></div>
+                        <div class="color-label">0</div>
+                        <div class="color-hex">#2c2c2c</div>
+                        <div class="color-name">Black</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #C15F3C;"></div>
+                        <div class="color-label">1</div>
+                        <div class="color-hex">#C15F3C</div>
+                        <div class="color-name">Red</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #50A14F;"></div>
+                        <div class="color-label">2</div>
+                        <div class="color-hex">#50A14F</div>
+                        <div class="color-name">Green</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #C18401;"></div>
+                        <div class="color-label">3</div>
+                        <div class="color-hex">#C18401</div>
+                        <div class="color-name">Yellow</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #4078F2;"></div>
+                        <div class="color-label">4</div>
+                        <div class="color-hex">#4078F2</div>
+                        <div class="color-name">Blue</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #A626A4;"></div>
+                        <div class="color-label">5</div>
+                        <div class="color-hex">#A626A4</div>
+                        <div class="color-name">Magenta</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #0184BC;"></div>
+                        <div class="color-label">6</div>
+                        <div class="color-hex">#0184BC</div>
+                        <div class="color-name">Cyan</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #e8e6e3; border: 1px solid #d4d0c8;"></div>
+                        <div class="color-label">7</div>
+                        <div class="color-hex">#e8e6e3</div>
+                        <div class="color-name">White</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #8b8680;"></div>
+                        <div class="color-label">8</div>
+                        <div class="color-hex">#8b8680</div>
+                        <div class="color-name">Bright Black</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #da7756;"></div>
+                        <div class="color-label">9</div>
+                        <div class="color-hex">#da7756</div>
+                        <div class="color-name">Bright Red</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #6BBF6A;"></div>
+                        <div class="color-label">10</div>
+                        <div class="color-hex">#6BBF6A</div>
+                        <div class="color-name">Bright Green</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #D4940F;"></div>
+                        <div class="color-label">11</div>
+                        <div class="color-hex">#D4940F</div>
+                        <div class="color-name">Bright Yellow</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #5C8FE6;"></div>
+                        <div class="color-label">12</div>
+                        <div class="color-hex">#5C8FE6</div>
+                        <div class="color-name">Bright Blue</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #B84DBB;"></div>
+                        <div class="color-label">13</div>
+                        <div class="color-hex">#B84DBB</div>
+                        <div class="color-name">Bright Magenta</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #1B9ECC;"></div>
+                        <div class="color-label">14</div>
+                        <div class="color-hex">#1B9ECC</div>
+                        <div class="color-name">Bright Cyan</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-box" style="background: #faf9f5; border: 1px solid #d4d0c8;"></div>
+                        <div class="color-label">15</div>
+                        <div class="color-hex">#faf9f5</div>
+                        <div class="color-name">Bright White</div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <strong>Background:</strong> #faf9f5 | <strong>Foreground:</strong> #2c2c2c<br>
+                    <strong>Best for:</strong> Daytime coding and bright environments
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Claude Terminal Theme Preview — Created to help you visualize the color palette before installation</p>
+            <p style="margin-top: 8px;">Inspired by <span class="footer-accent">Claude AI</span> and optimized for developer productivity</p>
+        </div>
+    </div>
+</body>
+</html>
