@@ -121,6 +121,8 @@ const events = [
 
 let startTime = null;
 let animFrame = null;
+let currentElapsed = 0;
+let animRunning = false;
 let zoom = 1, zoomTarget = 1, panY = 0, panYTarget = 0;
 
 function lerp(a, b, t) { return a + (b - a) * Math.min(Math.max(t, 0), 1); }
@@ -321,23 +323,48 @@ function drawFrame(elapsed) {
 
 function animate(ts) {
   if (!startTime) startTime = ts;
-  const elapsed = ts - startTime;
-  drawFrame(elapsed);
+  currentElapsed = ts - startTime;
+  drawFrame(currentElapsed);
   const maxT = events[events.length-1].t;
-  if (elapsed < maxT + 2000) animFrame = requestAnimationFrame(animate);
-  else {
-    // Done — click canvas to replay
+  if (currentElapsed < maxT + 2000) {
+    animFrame = requestAnimationFrame(animate);
+  } else {
+    animRunning = false;
   }
 }
 
 function play() {
   startTime = null; zoom=1; zoomTarget=1; panY=0; panYTarget=0;
+  currentElapsed = 0; animRunning = true;
   if (animFrame) cancelAnimationFrame(animFrame);
   animFrame = requestAnimationFrame(animate);
 }
 
-// Click to replay
-canvas.addEventListener('click', play);
+function jumpTo(t) {
+  // Shift startTime so elapsed becomes t
+  startTime = performance.now() - t;
+  currentElapsed = t;
+  if (!animRunning) {
+    animRunning = true;
+    animFrame = requestAnimationFrame(animate);
+  }
+}
+
+// Click to advance to next event; if finished, replay
+canvas.addEventListener('click', () => {
+  const maxT = events[events.length - 1].t;
+  if (!animRunning || currentElapsed >= maxT) {
+    play(); return;
+  }
+  // Find next event after current time (+200ms buffer so we skip to a new one)
+  const next = events.find(e => e.t > currentElapsed + 200);
+  if (next) {
+    jumpTo(next.t);
+  } else {
+    // Near the end, jump to final
+    jumpTo(maxT);
+  }
+});
 
 // Autoplay once images are ready (or after 2s max)
 function autoplay() {
