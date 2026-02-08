@@ -89,19 +89,20 @@ const events = [
   { t: 52000, type: 'image-grid', keys: ['anti', 'domain', 'horseman', 'mode'] },
 
   { t: 60500, type: 'terminal-resume' },
-  { t: 61000, type: 'prompt', text: "make the print cards. I want to print them on makeplayingcards" },
-  { t: 64000, type: 'prompt', text: "The concept and title is 'Reframing Relationships'" },
-  { t: 67000, type: 'prompt', text: "Category specific backs. Reframing Relationships big and central" },
-  { t: 70000, type: 'ai', text: "Print-ready cards rendered at 300 DPI" },
+  { t: 61000, type: 'prompt', text: "put these into the card review UI so I can check the hands" },
+  { t: 64000, type: 'ai', text: "Review UI built — filter by category, flag bad hands/faces" },
+  { t: 66500, type: 'prompt', text: "the backs should not have emoji. Different colors per category" },
+  { t: 69500, type: 'prompt', text: "make the print cards for makeplayingcards" },
+  { t: 72500, type: 'ai', text: "Print-ready cards rendered at 300 DPI" },
 
-  { t: 72500, type: 'prompt', text: "Document how we did this into a card deck creation skill" },
-  { t: 75500, type: 'ai', text: "Card deck creation skill saved" },
+  { t: 75000, type: 'prompt', text: "can you put the review ui online?" },
+  { t: 77500, type: 'ai', text: "Deployed to designtherapy.vercel.app/resources" },
 
-  { t: 78000, type: 'image-grid', keys: ['pattern', 'need', 'anti', 'mode'] },
+  { t: 80000, type: 'image-grid', keys: ['pattern', 'need', 'anti', 'mode'] },
 
-  { t: 86500, type: 'title-card', bgImage: 'need', title: 'Reframing Relationships', subtitle: 'designtherapy.vercel.app/resources', meta: '63 therapy cards \u00b7 built with Claude Code' },
+  { t: 88500, type: 'title-card', bgImage: 'need', title: 'Reframing Relationships', subtitle: 'designtherapy.vercel.app/resources', meta: '63 therapy cards \u00b7 built with Claude Code' },
 
-  { t: 92500, type: 'end' },
+  { t: 94500, type: 'end' },
 ];
 
 let startTime = null;

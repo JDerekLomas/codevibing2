@@ -93,15 +93,16 @@ const events = [
   { t: 65000, type: 'prompt', text: "regenerate the artwork. create a new version" },
   { t: 68000, type: 'prompt', text: "upload to The Game Crafter" },
 
-  { t: 71000, type: 'prompt', text: "make 5 prompt cards that can show up in the spread" },
-  { t: 74000, type: 'prompt', text: "create a printable pdf. Then prepare the future deck cards" },
-  { t: 77000, type: 'ai', text: "PDF generated. Cards uploaded to TGC." },
+  { t: 71000, type: 'prompt', text: "open the cards for me to review" },
+  { t: 74000, type: 'ai', text: "Review UI open — rate cards, flag issues, export JSON" },
+  { t: 76500, type: 'prompt', text: "create a printable pdf. Then prepare the future deck cards" },
+  { t: 79500, type: 'ai', text: "PDF generated. Cards uploaded to TGC." },
 
-  { t: 79500, type: 'image-grid', keys: ['stage', 'elem', 'sage', 'vessel'] },
+  { t: 82000, type: 'image-grid', keys: ['stage', 'elem', 'sage', 'vessel'] },
 
-  { t: 88000, type: 'title-card', bgImage: 'arc', title: 'Alchemy Deck', subtitle: 'alchemy-deck.vercel.app', meta: '34 oracle cards \u00b7 built with Claude Code' },
+  { t: 90500, type: 'title-card', bgImage: 'arc', title: 'Alchemy Deck', subtitle: 'alchemy-deck.vercel.app', meta: '34 oracle cards \u00b7 built with Claude Code' },
 
-  { t: 94000, type: 'end' },
+  { t: 96500, type: 'end' },
 ];
 
 let startTime = null;
